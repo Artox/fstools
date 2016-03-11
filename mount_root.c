@@ -72,6 +72,7 @@ start(int argc, char *argv[1])
 
 	case FS_JFFS2:
 	case FS_UBIFS:
+	case FS_EXT4FS:
 		mount_overlay(data);
 		break;
 
@@ -110,6 +111,7 @@ done(int argc, char *argv[1])
 
 	case FS_JFFS2:
 	case FS_UBIFS:
+	case FS_EXT4FS:
 		fs_state_set("/overlay", FS_STATE_READY);
 		break;
 	}
