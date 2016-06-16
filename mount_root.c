@@ -37,25 +37,45 @@ start(int argc, char *argv[1])
 	if (!getenv("PREINIT") && stat("/tmp/.preinit", &s))
 		return -1;
 
+	/*
+	 * When the default overlay partition name rootfs_data can not be found,
+	 * fall back to the special /dev/root device.
+	 */
 	if (!data) {
 		root = volume_find("rootfs");
 		volume_init(root);
+
+		// mount /dev/root at /
 		ULOG_NOTE("mounting /dev/root\n");
 		mount("/dev/root", "/", NULL, MS_NOATIME | MS_REMOUNT, 0);
-	}
 
-	/*
-	 * Before trying to mount and use "rootfs_data" let's check if there is
-	 * extroot configured. Following call will handle reading config from
-	 * the "rootfs_data" on its own.
-	 */
-	extroot_prefix = "";
-	if (!mount_extroot()) {
-		ULOG_NOTE("switched to extroot\n");
+		/*
+		 * Now that / has been mounted, and there is no overlay device,
+		 * see if extroot is configured.
+		 * 
+		 * The following call will handle reading configuration from
+		 * rootfs on its own.
+		 */
+		extroot_prefix = "";
+		if (!mount_extroot()) {
+			ULOG_NOTE("switched to extroot\n");
+			/*
+			 * extroot succeeded mounting an overlay partition, return.
+			 */
+			return 0;
+		}
+
+		/*
+		 * Even if extroot was not configured, considering that no overlay
+		 * partition was found, and / was mounted, return now.
+		 */
 		return 0;
 	}
 
-	/* There isn't extroot, so just try to mount "rootfs_data" */
+	/*
+	 * neither /dev/root nor extroot were used.
+	 * Attempt to mount the overlay partition.
+	 */
 	switch (volume_identify(data)) {
 	case FS_NONE:
 		ULOG_WARN("no usable overlay filesystem found, using tmpfs overlay\n");
