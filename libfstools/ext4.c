@@ -77,8 +77,8 @@ ext4_part_match(char *dev, char *name, char *filename)
 			strcpy(devname, buf + strlen("DEVNAME="));
 			continue;
 		}
-		/* Match partition name */
-		if (strstr(buf, name))  {
+		/* Match partition or device node name */
+		if (strstr(buf, name) || strstr(devname, name))  {
 			ret = 0;
 			break;
 		}
