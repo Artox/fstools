@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <asm/setup.h>
 
 #include <libubox/ulog.h>
 
@@ -31,11 +32,58 @@ static int
 start(int argc, char *argv[1])
 {
 	struct volume *root;
-	struct volume *data = volume_find("rootfs_data");
+	struct volume *data = NULL;
 	struct stat s;
 
 	if (!getenv("PREINIT") && stat("/tmp/.preinit", &s))
 		return -1;
+
+	/*
+	 * Check cmdline for a hint about overlay device
+	 * e.g. /dev/mmcblk0p3
+	 */
+	do {
+		FILE *fp;
+		char buffer[COMMAND_LINE_SIZE] = {0};
+
+		fp = fopen("/proc/cmdline", "r");
+        if(!fp) {
+			ULOG_WARN("Failed to open /proc/cmdline for reading\n");
+			break;
+		}
+		while (!feof(fp)) {
+			if(fscanf(fp, "overlay=%s", buffer))
+				break;
+
+			fseek(fp, 1, SEEK_CUR);
+		}
+		fclose(fp);
+
+		/*
+		 * If an overlay= argument was found, look for a volume with that name
+		 */
+		if (buffer[0]) {
+			/*
+			 * strip /dev/ prefix if any
+			 */
+			int offset = 0;
+			if (strstr(buffer, "/dev/"))
+				offset = 5;
+
+			ULOG_NOTE("Looking for overlay device given on commandline\n");
+			data = volume_find(buffer + offset);
+		}
+	} while(0);
+
+	/*
+	 * Look for default rootfs_data partition name
+	 */
+	if(!data)
+		data = volume_find("rootfs_data");
+
+	/*
+	 * In case rootfs_data doesn't exist, only mount /dev/root for now
+	 */
 
 	/*
 	 * When the default overlay partition name rootfs_data can not be found,
@@ -119,8 +167,54 @@ stop(int argc, char *argv[1])
 static int
 done(int argc, char *argv[1])
 {
-	struct volume *v = volume_find("rootfs_data");
+	struct volume *v = NULL;\
 
+	/*
+	 * Check cmdline for a hint about overlay device
+	 * e.g. /dev/mmcblk0p3
+	 */
+	do {
+		FILE *fp;
+		char buffer[COMMAND_LINE_SIZE] = {0};
+
+		fp = fopen("/proc/cmdline", "r");
+        if(!fp) {
+			ULOG_WARN("Failed to open /proc/cmdline for reading\n");
+			break;
+		}
+		while (!feof(fp)) {
+			if(fscanf(fp, "overlay=%s", buffer))
+				break;
+
+			fseek(fp, 1, SEEK_CUR);
+		}
+		fclose(fp);
+
+		/*
+		 * If an overlay= argument was found, look for a volume with that name
+		 */
+		if (buffer[0]) {
+			/*
+			 * strip /dev/ prefix if any
+			 */
+			int offset = 0;
+			if (strstr(buffer, "/dev/"))
+				offset = 5;
+
+			ULOG_NOTE("Looking for overlay device given on commandline\n");
+			v = volume_find(buffer + offset);
+		}
+	} while(0);
+
+	/*
+	 * Look for default rootfs_data partition name
+	 */
+	if (!v)
+		v = volume_find("rootfs_data");
+
+	/*
+	 * When no overlay partition is found there is nothing to do
+	 */
 	if (!v)
 		return -1;
 
