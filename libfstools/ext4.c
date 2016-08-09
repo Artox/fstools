@@ -129,8 +129,8 @@ static int check_for_mtd(const char *mtd)
 				return -1;
 			}
 		}
+		fclose(fp);
 	}
-	fclose(fp);
 	return 0;
 }
 
