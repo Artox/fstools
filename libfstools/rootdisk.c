@@ -280,4 +280,4 @@ static struct driver rootdisk_driver = {
 	.identify = rootdisk_volume_identify,
 };
 
-DRIVER(rootdisk_driver);
+//DRIVER(rootdisk_driver);

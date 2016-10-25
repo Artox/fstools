@@ -14,6 +14,7 @@ ADD_LIBRARY(fstools SHARED
 		libfstools/mount.c
 		libfstools/ubi.c
 		libfstools/rootdisk.c
+		libfstools/overlaypart.c
 		libfstools/find.c)
 TARGET_LINK_LIBRARIES(fstools ubox)
 INSTALL(TARGETS fstools LIBRARY DESTINATION lib)
